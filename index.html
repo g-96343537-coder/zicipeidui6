@@ -3,281 +3,268 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>配对生字成词语练习</title>
+<title>生字配对游戏（绿色主题版）</title>
 <style>
-  :root{
-    --bg:#fff8f0; --panel:#ffffff; --accent:#ff9f43; --good:#34c759; --bad:#ff6b6b; --muted:#6b6b6b
-  }
-  *{box-sizing:border-box}
-  body{font-family: "Microsoft YaHei", Arial, sans-serif;background:var(--bg);color:#222;margin:0;padding:24px;display:flex;flex-direction:column;align-items:center}
-  h1{color:var(--accent);margin:6px 0 2px;font-size:1.6rem}
-  p.lead{color:var(--muted);margin:0 0 12px}
+body {
+  font-family: 'Microsoft YaHei', sans-serif;
+  margin: 0;
+  padding: 20px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #1b5e20; /* 主文字颜色绿 */
 
-  .controls{width:100%;max-width:980px;display:flex;gap:10px;align-items:center;margin:12px 0}
-  .score{font-weight:700;color:#333}
-  .spacer{flex:1}
-  .btn{background:var(--panel);border:1px solid #ffdca8;padding:8px 12px;border-radius:8px;cursor:pointer}
-  .btn.primary{background:linear-gradient(180deg,var(--accent),#ffb366);color:#fff;border:none}
+  background: linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5)),
+              url('https://cdn.pixabay.com/photo/2016/11/29/10/07/forest-1869100_1280.jpg') no-repeat center center;
+  background-size: cover;
+  transition: background 0.5s ease;
+  overflow-x: hidden;
+}
 
-  .exercise-wrap{width:100%;max-width:980px;background:var(--panel);border-radius:12px;padding:18px;box-shadow:0 10px 30px rgba(20,30,40,0.06)}
+h1 { text-align: center; margin-top: 0; }
+.score { font-size: 1.2rem; margin-top: 10px; color: #1b5e20; z-index: 1; }
+.game-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 90%;
+  max-width: 500px;
+  margin-top: 20px;
+  z-index: 1;
+}
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.word, .pair-box {
+  flex: 1;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  border-radius: 15px;
+  text-align: center;
+  box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+  z-index: 1;
+  transition: transform 0.3s ease;
+}
+.word {
+  background: #a5d6a7; /* 左侧生字绿色背景 */
+  border: 2px solid #2e7d32; /* 边框深绿色 */
+  cursor: grab;
+}
+.word:active { transform: scale(1.1) rotate(-2deg); }
 
-  /* rows layout: each row is a horizontal pair */
-  .match-container{display:flex;flex-direction:column;gap:12px}
-  .match-row{display:flex;align-items:center;gap:28px;justify-content:center}
+.pair-box {
+  border: 2px dashed #81c784; /* 边框浅绿 */
+  background: #c8e6c9; /* 目标框浅绿 */
+  color: #000;
+  position: relative;
+}
 
-  .draggable{
-    width:64px;height:64px;line-height:64px;border-radius:10px;text-align:center;font-size:28px;background:#fff8e6;border:2px solid #ffd0a8;cursor:grab;user-select:none;transition:transform .18s ease,box-shadow .18s ease
-  }
-  .draggable.placed{opacity:0.6;cursor:default}
+/* 动画效果 */
+.pair-box.flash { animation: flash 0.6s ease; }
+.pair-box.correct {
+  background-color: #2e7d32; /* 正确深绿色 */
+  color: #fff;
+  border: 2px solid #1b5e20;
+  animation: jump 0.5s;
+}
+.pair-box.wrong {
+  background-color: #f44336;
+  color: #fff;
+  border: 2px solid #b71c1c;
+  animation: shake 0.5s;
+}
 
-  .dropzone{min-width:220px;height:64px;border-radius:10px;border:2px dashed #e6e6e6;background:#f8fcff;display:flex;align-items:center;justify-content:center;padding:8px;font-size:20px}
+@keyframes flash {
+  0% { box-shadow: 0 0 0px #fff; }
+  50% { box-shadow: 0 0 20px 10px #81c784; }
+  100% { box-shadow: 0 0 0px #fff; }
+}
+@keyframes jump {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(-15px); }
+  60% { transform: translateY(0); }
+  100% { transform: translateY(-5px); }
+}
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  50% { transform: translateX(8px); }
+  75% { transform: translateX(-8px); }
+  100% { transform: translateX(0); }
+}
 
-  /* success animation */
-  .pop{animation:pop .45s ease forwards}
-  @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.12)}100%{transform:scale(1)}}
-  .glow{box-shadow:0 0 18px 6px rgba(255,220,120,0.55)}
-
-  /* wrong shake */
-  .shake{animation:shake .5s ease}
-  @keyframes shake{0%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}100%{transform:translateX(0)}}
-
-  /* full-score modal */
-  .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(0.9);background:linear-gradient(180deg,#fff9f0,#fff4e6);padding:24px;border-radius:14px;box-shadow:0 30px 60px rgba(0,0,0,0.18);display:none;align-items:center;flex-direction:column;z-index:999}
-  .modal.show{display:flex;animation:modalIn .45s ease forwards}
-  @keyframes modalIn{0%{transform:translate(-50%,-50%) scale(0.9);opacity:0}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
-  .modal h2{margin:0;color:#175e26}
-  .modal p{margin:8px 0 0;color:#175e26}
-
-  /* responsive */
-  @media (max-width:720px){.match-row{gap:14px;flex-wrap:wrap}.dropzone{min-width:160px}}
+button {
+  margin-top: 15px;
+  padding: 10px 25px;
+  border: none;
+  border-radius: 12px;
+  background-color: #2e7d32; /* 按钮绿色 */
+  color: #fff;
+  cursor: pointer;
+  font-size: 1rem;
+}
 </style>
 </head>
 <body>
-  <h1>配对生字成词语练习</h1>
-  <p class="lead">拖动左侧生字到右侧空格处完成词语。正确会有动画与提示音，错误会晃动并发出提示声。</p>
-
-  <div class="controls">
-    <div class="score" id="score">得分：0 / 10</div>
-    <div class="spacer"></div>
-    <button class="btn" id="prevBtn">上一页</button>
-    <div id="pageInfo">第 1 / 2 页</div>
-    <button class="btn" id="nextBtn">下一页</button>
-    <button class="btn primary" id="indepBtn">独立练习（新页面）</button>
-    <button class="btn" id="backBtn" style="display:none">返回分页</button>
-  </div>
-
-  <div class="exercise-wrap">
-    <div id="exerciseArea" class="match-container"></div>
-    <div style="margin-top:14px;display:flex;gap:10px;justify-content:center">
-      <button class="btn" id="resetBtn">重置本页</button>
-    </div>
-  </div>
-
-  <div class="modal" id="congrats">
-    <h2>🎉 太棒了！</h2>
-    <p>你完成了全部题目！</p>
-  </div>
-
-  <!-- sounds -->
-  <audio id="dingSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_977c5b3a05.mp3?filename=ding-36029.mp3"></audio>
-  <audio id="wrongSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_5d30f36c2e.mp3?filename=error-126627.mp3"></audio>
-  <audio id="clapSound" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_2fd2f0a2f1.mp3?filename=applause-8bit-6342.mp3"></audio>
+<h1>生字配对游戏</h1>
+<p>左边生字固定顺序，右边目标框随机排列。拖动正确显示绿色并跳跃动画，错误闪红回原位。</p>
+<div class="score" id="score">完成：0 / 6</div>
+<div class="game-container" id="gameContainer"></div>
+<div>
+  <button id="prevBtn" onclick="prevPage()" disabled>上一页</button>
+  <button id="nextBtn" onclick="nextPage()">下一页</button>
+  <button onclick="resetGame()">重置</button>
+</div>
 
 <script>
-// 数据定义（20 字，分两页）
 const allData = [
-  {char:'爸', phrase:'我（　）妈妈'},
-  {char:'妈', phrase:'（　）爸'},
-  {char:'笑', phrase:'（　）着'},
-  {char:'着', phrase:'回（　）'},
-  {char:'回', phrase:'（　）哥'},
-  {char:'哥', phrase:'（　）姐'},
-  {char:'哥', phrase:'（　）家'},
-  {char:'姐', phrase:'（　）的'},
-  {char:'全', phrase:'一（　）星'},
-  {char:'家', phrase:'（　）间'},
-  {char:'的', phrase:'我（　）妈妈'},
-  {char:'星', phrase:'（　）星'},
-  {char:'那', phrase:'那（　）么'},
-  {char:'这', phrase:'这（　）么'},
-  {char:'么', phrase:'多（　）'},
-  {char:'多', phrase:'很（　）'},
-  {char:'这', phrase:'这（　）儿'},
-  {char:'颗', phrase:'一（　）星'},
-  {char:'中', phrase:'（　）间'},
-  {char:'间', phrase:'房（　）'}
+  {word: '森', pair: '林'},
+  {word: '美', pair: '丽'},
+  {word: '甘', pair: '甜'},
+  {word: '舌', pair: '头'},
+  {word: '喜', pair: '爱'},
+  {word: '蜂', pair: '蜜'},
+  {word: '露', pair: '珠'},
+  {word: '肥', pair: '胖'},
+  {word: '照', pair: '相'},
+  {word: '月', pair: '亮'},
+  {word: '绿', pair: '色'},
+  {word: '出', pair: '来'}
 ];
 
-const PAGE_SIZE = 10;
-let page = 0; // 0 or 1
-let currentPageData = [];
-let inIndependentMode = false;
-let placedCount = 0;
-
-// 独立练习集（右侧显示带空位的短语，学生拖入正确单字）
-const independentSet = [
-  {answer:'的', phrase:'我（　）妈妈'},
-  {answer:'爸', phrase:'（　）爸'},
-  {answer:'妈', phrase:'（　）妈'},
-  {answer:'笑', phrase:'（　）着'},
-  {answer:'家', phrase:'回（　）'},
-  {answer:'哥', phrase:'（　）哥'},
-  {answer:'姐', phrase:'（　）姐'},
-  {answer:'全', phrase:'（　）家'},
-  {answer:'颗', phrase:'一（　）星'},
-  {answer:'中', phrase:'（　）间'}
+const pageBackgrounds = [
+  'https://i.pinimg.com/originals/74/89/42/7489426ef37a9ef59b9b7a2b7b7372f3.jpg',
+  'https://i.pinimg.com/originals/74/89/42/7489426ef37a9ef59b9b7a2b7b7372f3.jpg'
 ];
 
-// 预加载音频元素
-const ding = document.getElementById('dingSound');
-const wrong = document.getElementById('wrongSound');
-const clap = document.getElementById('clapSound');
+let currentPage = 0;
+const pageSize = 6;
+let score = 0;
 
-function paginate(){
-  const start = page * PAGE_SIZE;
-  currentPageData = allData.slice(start, start + PAGE_SIZE);
+function shuffle(arr) {
+  const array = [...arr];
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
 }
 
-function shuffle(arr){ return arr.slice().sort(()=>Math.random()-0.5); }
+function renderPage() {
+  const container = document.getElementById('gameContainer');
+  container.innerHTML = '';
+  score = 0;
+  updateScore();
 
-function updateScoreDisplay(){
-  const total = inIndependentMode ? independentSet.length : currentPageData.length;
-  document.getElementById('score').textContent = `得分：${placedCount} / ${total}`;
+  document.body.style.background = `linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5)), 
+                                    url(${pageBackgrounds[currentPage]}) no-repeat center center`;
+  document.body.style.backgroundSize = 'cover';
+
+  const start = currentPage * pageSize;
+  const end = Math.min(start + pageSize, allData.length);
+  const pageData = allData.slice(start, end);
+
+  for (let i = 0; i < pageData.length; i++) {
+    const row = document.createElement('div');
+    row.className = 'row';
+
+    const wordDiv = document.createElement('div');
+    wordDiv.className = 'word';
+    wordDiv.textContent = pageData[i].word;
+    wordDiv.draggable = true;
+    wordDiv.id = 'word-' + i;
+    wordDiv.ondragstart = drag;
+    row.appendChild(wordDiv);
+
+    container.appendChild(row);
+  }
+
+  const targets = shuffle(pageData);
+  const rows = container.querySelectorAll('.row');
+  for (let i = 0; i < targets.length; i++) {
+    const targetDiv = document.createElement('div');
+    targetDiv.className = 'pair-box';
+    targetDiv.dataset.word = targets[i].word;
+    targetDiv.dataset.pair = targets[i].pair;
+    targetDiv.dataset.full = targets[i].word + targets[i].pair;
+    targetDiv.textContent = targets[i].pair;
+    targetDiv.ondragover = allowDrop;
+    targetDiv.ondrop = drop;
+
+    rows[i].appendChild(targetDiv);
+  }
+
+  document.getElementById('prevBtn').disabled = currentPage === 0;
+  document.getElementById('nextBtn').disabled = end >= allData.length;
 }
 
-function buildRows(data){
-  const area = document.getElementById('exerciseArea');
-  area.innerHTML = '';
-  placedCount = 0; updateScoreDisplay();
+function allowDrop(e) { e.preventDefault(); }
+function drag(e) { e.dataTransfer.setData('text', e.target.id); }
 
-  // 左 chars list (shuffled) and right targets (shuffled rows), but we will align rows by pairing a shuffled left with a shuffled right
-  const leftChars = shuffle(data.map(d=>d.char));
-  const targets = shuffle(data.map(d=>({char:d.char, phrase:d.phrase})));
+function drop(e) {
+  e.preventDefault();
+  const dataId = e.dataTransfer.getData('text');
+  const dragged = document.getElementById(dataId);
+  const box = e.currentTarget;
 
-  // To create a neat row alignment, iterate index-wise; if counts equal (they are), pair by index for layout but matching logic uses dataset.answer on dropzone
-  for(let i=0;i<targets.length;i++){
-    const row = document.createElement('div'); row.className = 'match-row';
+  if (!dragged) return;
+  if (box.querySelector('.word')) return;
 
-    // left draggable (take one from leftChars)
-    const ch = leftChars[i];
-    const drag = document.createElement('div'); drag.className='draggable'; drag.textContent = ch; drag.draggable = true;
-    drag.id = `drag-${i}-${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
-    drag.addEventListener('dragstart', e=>{ e.dataTransfer.setData('text/plain', drag.id); });
-    drag.addEventListener('click', ()=>speak(ch));
+  if (dragged.textContent === box.dataset.word) {
+    box.textContent = box.dataset.full;
+    box.classList.add('correct', 'flash');
+    dragged.draggable = false;
+    dragged.style.display = 'none';
+    speakWord(box.dataset.full);
+    score++;
+    setTimeout(() => box.classList.remove('flash'), 600);
+  } else {
+    box.classList.add('wrong', 'flash');
+    setTimeout(() => {
+      box.classList.remove('wrong', 'flash');
+    }, 600);
+  }
+  updateScore();
+}
 
-    // right dropzone uses targets[i]
-    const tgt = targets[i];
-    const drop = document.createElement('div'); drop.className='dropzone';
-    drop.dataset.answer = tgt.char; // expected character
-    drop.dataset.phrase = tgt.phrase;
-    drop.innerHTML = tgt.phrase; // shows the phrase with empty bracket
+function updateScore() {
+  const pageEnd = Math.min(pageSize, allData.length - currentPage * pageSize);
+  document.getElementById('score').textContent = `完成：${score} / ${pageEnd}`;
+}
 
-    // dragover
-    drop.addEventListener('dragover', e=>{ e.preventDefault(); });
-
-    // drop handling
-    drop.addEventListener('drop', e=>{
-      e.preventDefault();
-      const draggedId = e.dataTransfer.getData('text/plain');
-      const draggedEl = document.getElementById(draggedId);
-      if(!draggedEl) return;
-      const draggedChar = draggedEl.textContent;
-
-      // if already filled, move previous back
-      const existing = drop.querySelector('.draggable');
-      if(existing){
-        // return existing to left area (append to top of exercise area left column by inserting before row)
-        existing.classList.remove('placed'); existing.draggable = true;
-        // find a place to put it back: prepend to exercise area
-        document.getElementById('exerciseArea').insertBefore(existing, document.getElementById('exerciseArea').firstChild);
-      }
-
-      // check correctness
-      if(draggedChar === drop.dataset.answer){
-        // correct
-        drop.innerHTML = drop.dataset.phrase.replace('（　）', `<strong>${draggedChar}</strong>`);
-        draggedEl.classList.add('placed'); draggedEl.draggable = false;
-        // visual effects
-        draggedEl.classList.add('pop'); drop.classList.add('glow');
-        setTimeout(()=>{ draggedEl.classList.remove('pop'); drop.classList.remove('glow'); }, 700);
-        try{ ding.currentTime = 0; ding.play(); }catch(e){}
-        placedCount++;
-        updateScoreDisplay();
-
-        // if full, celebrate
-        const total = inIndependentMode ? independentSet.length : currentPageData.length;
-        if(placedCount === total){ showCongrats(); }
-      } else {
-        // wrong: attach then shake and remove
-        // temporarily show the wrong char in the drop area for feedback
-        drop.classList.add('shake');
-        try{ wrong.currentTime = 0; wrong.play(); }catch(e){}
-        setTimeout(()=> drop.classList.remove('shake'),500);
-      }
-
-    });
-
-    row.appendChild(drag);
-    row.appendChild(drop);
-    area.appendChild(row);
+function nextPage() {
+  if ((currentPage + 1) * pageSize < allData.length) {
+    currentPage++;
+    renderPage();
   }
 }
 
-function renderPage(){
-  inIndependentMode = false;
-  paginate();
-  document.getElementById('pageInfo').textContent = `第 ${page+1} / ${Math.ceil(allData.length / PAGE_SIZE)} 页`;
-  buildRows(currentPageData);
+function prevPage() {
+  if (currentPage > 0) {
+    currentPage--;
+    renderPage();
+  }
 }
 
-function renderIndependent(){
-  inIndependentMode = true;
-  document.getElementById('pageInfo').textContent = '独立练习';
-  buildRows(independentSet.map(d=>({char:d.answer, phrase:d.phrase}))); // build rows from independentSet
+function resetGame() {
+  renderPage();
 }
 
-function showCongrats(){
-  const modal = document.getElementById('congrats');
-  modal.classList.add('show');
-  try{ clap.currentTime = 0; clap.play(); }catch(e){}
-  setTimeout(()=>{ modal.classList.remove('show'); }, 2500);
+function speakWord(word) {
+  try {
+    const utter = new SpeechSynthesisUtterance(word);
+    utter.lang = 'zh-CN';
+    window.speechSynthesis.speak(utter);
+  } catch(e) { console.warn('语音播放失败', e); }
 }
 
-// controls
-document.getElementById('nextBtn').addEventListener('click', ()=>{ if((page+1)*PAGE_SIZE < allData.length){ page++; paginate(); renderPage(); } });
-document.getElementById('prevBtn').addEventListener('click', ()=>{ if(page>0){ page--; renderPage(); } });
-
-// independent mode toggle
-document.getElementById('indepBtn').addEventListener('click', ()=>{
-  // hide paging buttons, show back
-  document.getElementById('prevBtn').style.display = 'none';
-  document.getElementById('nextBtn').style.display = 'none';
-  document.getElementById('indepBtn').style.display = 'none';
-  document.getElementById('backBtn').style.display = 'inline-block';
-  placedCount = 0; updateScoreDisplay();
-  renderIndependent();
-});
-
-document.getElementById('backBtn').addEventListener('click', ()=>{
-  document.getElementById('prevBtn').style.display = 'inline-block';
-  document.getElementById('nextBtn').style.display = 'inline-block';
-  document.getElementById('indepBtn').style.display = 'inline-block';
-  document.getElementById('backBtn').style.display = 'none';
-  page = 0; renderPage();
-});
-
-// reset page
-document.getElementById('resetBtn').addEventListener('click', ()=>{
-  placedCount = 0; updateScoreDisplay();
-  if(inIndependentMode) renderIndependent(); else renderPage();
-});
-
-// speak function
-function speak(text){ try{ const u = new SpeechSynthesisUtterance(text); u.lang='zh-CN'; window.speechSynthesis.speak(u);}catch(e){}
-}
-
-// init
-paginate(); renderPage(); updateScoreDisplay();
+renderPage();
 </script>
 </body>
 </html>
